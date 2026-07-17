@@ -19,12 +19,15 @@ Build a talking AI clone of yourself (or anyone) from your own life transcripts 
 text chat, a phone number, and a video avatar, all driven by one "brain"
 built from real conversations.
 
-Ships with four working demo personas out of the box — **Richard Nixon**,
-**Ronald Reagan**, **John F. Kennedy**, and **FDR** — each built entirely
-from public, on-the-record speeches, Wikipedia, and a real cloned voice
-(no personal data, no API keys required to try them). Pick a persona from
-the dropdown on any page, or put two or more of them in the **meeting
-room** and give them a topic to argue about with each other.
+Ships with ten working demo personas out of the box — **Richard Nixon,
+Ronald Reagan, John F. Kennedy, FDR, Will Rogers, Groucho Marx, Charlie
+Chaplin, W.C. Fields, Louis Armstrong, and Kurt Cobain** — each built
+from public, on-the-record speeches or interviews, Wikipedia, and (all
+but Louis Armstrong, and with real caveats on Cobain — see "Disclaimer")
+a real cloned voice. No personal data, no API keys required to try them.
+Pick a persona from the dropdown on any page, or put two or more of them
+in the **meeting room** and give them a topic to argue about with each
+other. Fully responsive — works the same on a phone as a desktop.
 
 ```
 npm install
@@ -86,7 +89,7 @@ Copy `.env.example` to `.env` and fill in only the keys for what you want:
 
 ### ElevenLabs (voice chat)
 [elevenlabs.io/app/settings/api-keys](https://elevenlabs.io/app/settings/api-keys) → create a key → `ELEVENLABS_API_KEY`.
-That alone is enough for all four bundled personas — each ships a
+That alone is enough for nine of the ten bundled personas — each ships a
 `voice.voiceId` in its `persona.json` pointing at a voice cloned in the
 original template author's ElevenLabs account. **You won't have access to
 those specific voices** unless you're deploying under that same account —
@@ -235,7 +238,7 @@ are already built in:
 npm test
 ```
 
-Runs against all four bundled personas and a synthetic example persona —
+Runs against all ten bundled personas and a synthetic example persona —
 no API keys, no network calls. Covers persona loading (`lib/personaRegistry.js`),
 prompt assembly (both "scripted" and "derived" persona modes), keyword/temporal
 transcript search, rate limiting, meeting-room setup validation, and a guard
@@ -258,24 +261,38 @@ run it by hand after every deploy.
 ## Disclaimer
 
 This project lets you build a voice/likeness clone of a real person and
-put it on the phone or video. Two different cases, two different bars:
+put it on the phone or video. Three different cases, three different bars:
 
 - **Yourself, or someone who's clearly and knowingly consented** — the
   main use case this template is built for. Go ahead.
-- **A historical figure, from their own public record** — all four
-  bundled demos (Nixon, Reagan, Kennedy, FDR): only their own
-  on-the-record speeches for text, and a voice clone built from their
-  own real recordings. No private data, no living person involved.
+- **A historical figure, safely removed from any active estate, from
+  their own public record** — nine of the ten bundled demos (Nixon,
+  Reagan, Kennedy, FDR, Will Rogers, Groucho Marx, Charlie Chaplin, W.C.
+  Fields, Louis Armstrong): decades gone, no one actively enforcing
+  rights over their likeness, built from their own on-the-record
+  speeches/interviews for text and a voice clone built from their own
+  real recordings.
+- **A recently-deceased figure with an active estate — Kurt Cobain,
+  the one exception here, included as an explicit, informed choice by
+  this repo's author, not a default recommendation.** Cobain died in
+  1994; California's postmortem right-of-publicity law runs 70 years
+  after death, his estate has actively protected his likeness before
+  (blocking a planned hologram), and his recordings are label-owned
+  copyrighted material, not public-domain government speeches like the
+  presidents'. That's a materially different, higher-risk lane than the
+  70+-years-gone/no-active-estate bar the rest of the roster meets —
+  weigh it deliberately if you're deciding whether to keep, extend, or
+  remove this one in your own deployment.
 
-**A living public figure is a materially different, higher-scrutiny
-case — this repo deliberately doesn't ship one.** We tried, for a
-current sitting president, and hit real limits worth knowing about
-before you consider it yourself: ElevenLabs' own policy explicitly
-prohibits cloning the voice of an elected official or political
-candidate (enforced by a technical "no-go voices" block, not just a
-ToS line), and multiple state laws (Tennessee's ELVIS Act, California
-Civil Code 3344, NY Civil Rights Law 50-51) plus a pending federal bill
-(the NO FAKES Act) now require consent for voice cloning specifically.
+**A living public figure is a different, higher-scrutiny case again —
+this repo deliberately doesn't ship one.** We tried, for a current
+sitting president, and hit real limits worth knowing about before you
+consider it yourself: ElevenLabs' own policy explicitly prohibits
+cloning the voice of an elected official or political candidate
+(enforced by a technical "no-go voices" block, not just a ToS line),
+and multiple state laws (Tennessee's ELVIS Act, California Civil Code
+3344, NY Civil Rights Law 50-51) plus a pending federal bill (the NO
+FAKES Act) now require consent for voice cloning specifically.
 Text-only commentary/parody of a living public figure's own public
 statements is a lower bar than voice or video cloning of them — but
 voice/video cloning a living person without consent isn't something
