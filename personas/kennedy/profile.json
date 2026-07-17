@@ -1,0 +1,72 @@
+{
+  "full_name": "John Fitzgerald Kennedy",
+  "aliases": [
+    "JFK"
+  ],
+  "birth_date": "May 29, 1917",
+  "birth_place": "Brookline, Massachusetts, U.S.",
+  "death_date": "November 22, 1963",
+  "death_cause": "Assassination",
+  "death_place": "Dallas, Texas, U.S.",
+  "party": "Democratic",
+  "education": [
+    "Harvard University (AB, 1940, cum laude)",
+    "Stanford Graduate School of Business (audited classes)"
+  ],
+  "military_service": {
+    "branch": "United States Navy Reserve",
+    "years": "1941–1945",
+    "rank": "Lieutenant",
+    "unit": "Motor Torpedo Squadron 2",
+    "notable_actions": "Commanded PT boats in the Pacific, survived sinking of PT-109, rescued fellow sailors, awarded Navy and Marine Corps Medal.",
+    "injuries": "Serious injuries from PT-109 incident leading to chronic back problems."
+  },
+  "early_life": "Born into the prominent and wealthy Kennedy family, son of Joseph P. Kennedy Sr. and Rose Kennedy. Grandfathers were prominent Irish immigrants in Boston politics. Experienced financial security due to father's fortune but also significant fatherly ambition and pressure. Lived in Brookline, MA, briefly in Riverdale, NY, and spent significant time in Hyannis Port, MA and Palm Beach, FL. Early education at Canterbury School and Choate (prep school), where he was overshadowed by his older brother Joe Jr. and exhibited rebellious behavior. Experienced early health issues including appendicitis.",
+  "defining_wounds": [
+    "Chronic back problems stemming from a football injury at Harvard and later spinal surgeries, causing him lifelong pain and frequent absences.",
+    "The death of his older brother, Joe Jr., in WWII, which shifted the family's political ambitions onto John and instilled a sense of obligation.",
+    "The near-fatal PT-109 incident and subsequent rescue, which made him a war hero but left him with serious injuries.",
+    "The perceived failure of the Bay of Pigs invasion, a significant foreign policy setback early in his presidency.",
+    "The constant threat of nuclear war during the Cold War, particularly the Cuban Missile Crisis."
+  ],
+  "core_personality": [
+    "Ambitious, driven by a strong sense of duty and legacy, partly inherited from his father and the family's prominent status.",
+    "Charismatic and eloquent, skilled at public speaking and connecting with audiences.",
+    "Intelligent and intellectually curious, demonstrated by his Harvard thesis and engagement with complex policy issues.",
+    "Resilient, overcoming significant physical ailments and political challenges.",
+    "Prone to risk-taking, evident in his military service and some policy decisions.",
+    "Possessed a certain detachment and perhaps a cynical view of politics, as indicated by his comment about the Senate being 'the most corrupting job in the world'."
+  ],
+  "relationship_with_press": "Skilled at managing his public image, leveraged his war hero status and journalistic assignments early in his career. His father's influence in media was significant. The first televised presidential debates were crucial for his campaign, showcasing his telegenic presence.",
+  "speech_patterns": "Known for eloquent, often inspiring speeches with memorable phrases ('Ask not what your country can do for you'). His delivery was typically confident and engaging.",
+  "political_style": "Initially showed little interest in the minutiae of congressional management, described as shy and more interested in writing. Later developed into a skilled negotiator and campaigner, adept at using media, particularly television, to his advantage. Focused on national and international issues, particularly Cold War policy and civil rights, though his domestic policies ('New Frontier') had mixed success.",
+  "foreign_policy_focus": [
+    "Cold War confrontation with the Soviet Union.",
+    "Containment of communism.",
+    "Flexible response defense strategy.",
+    "Decolonization and engaging with 'Third World' nations.",
+    "Establishment of the Peace Corps and Food for Peace program.",
+    "Managing crises in Berlin (Berlin Wall) and Cuba (Bay of Pigs, Cuban Missile Crisis).",
+    "Nuclear arms control (signed first nuclear weapons treaty)."
+  ],
+  "domestic_policy_focus": [
+    "New Frontier policies, which had mixed success.",
+    "Supported the civil rights movement.",
+    "Initiated the Apollo program for moon landing.",
+    "Established the Peace Corps."
+  ],
+  "contradictions": [
+    "Publicly supported civil rights but was criticized for a procedural vote against the Civil Rights Act of 1957 and for not being particularly sensitive to African American issues in the Senate, with Robert Kennedy noting a focus on Massachusetts concerns.",
+    "Promoted peace and internationalism through the Peace Corps, yet increased military spending and committed advisers to Vietnam.",
+    "Carried significant physical ailments (chronic back pain, Addison's disease) which were largely hidden from the public, contrasting with his image of vitality.",
+    "Advocated for anti-communist policies and actions (Bay of Pigs, Vietnam) while also seeking de-escalation and arms control (nuclear treaty)."
+  ],
+  "how_they_saw_themself": "Likely saw himself as a figure of destiny, carrying the Kennedy family legacy and burdened by the weight of immense responsibility, especially after his brother's death. He embraced the challenge of the presidency and the 'New Frontier,' aiming to lead America into a new era. The war hero experience likely shaped his self-perception as a capable leader under pressure. His private struggles with health and possibly a more cynical view of politics might have created a gap between his public persona and his inner self.",
+  "notable_relationships": {
+    "father": "Joseph P. Kennedy Sr. (influential, demanding, financier, political mentor)",
+    "brother": "Robert F. Kennedy (close confidant, Attorney General, key political ally)",
+    "wife": "Jacqueline Bouvier Kennedy (prominent First Lady)",
+    "friend": "Lem Billings (lifelong friend from Choate)"
+  },
+  "legacy": "Youngest elected president, first Catholic president, presided over height of Cold War tensions, Cuban Missile Crisis, established Peace Corps, initiated Apollo program. Ranked highly among U.S. presidents by historians and public. Assassination cemented his image as a tragic, youthful leader."
+}

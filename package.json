@@ -1,0 +1,23 @@
+{
+  "name": "digital-twin-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Build a talking AI clone of yourself (or anyone) from your own transcripts — text chat, phone number, and video avatar.",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node --test",
+    "smoke": "node scripts/smoke-check.js",
+    "sync-bee": "node scripts/sync-bee.js",
+    "extract-opinions": "node scripts/extract-opinions.js",
+    "build-profile": "node scripts/build-profile-from-wikipedia.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18"
+  }
+}

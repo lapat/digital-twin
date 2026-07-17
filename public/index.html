@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Digital Twin — Video</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: #0a0a0f; color: #e8e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; text-align: center; padding: 20px; overflow-x: hidden;
+  }
+  .brand { font-size: 19px; font-weight: 700; color: #a78bfa; }
+  select#persona-select {
+    background: #1e1a3a; color: #a78bfa; border: 1px solid #3a2f6b; border-radius: 6px;
+    padding: 8px 12px; font-size: 15px; font-weight: 600; cursor: pointer; max-width: 100%;
+  }
+  #frame-wrap { width: min(900px, 100%); aspect-ratio: 16/9; background: #16162a; border-radius: 12px; overflow: hidden; border: 1px solid #232336; }
+  iframe { width: 100%; height: 100%; border: none; }
+  button {
+    background: #7c3aed; color: white; border: none; border-radius: 8px;
+    padding: 12px 24px; font-weight: 600; cursor: pointer; font-size: 15px; min-height: 44px;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #status { color: #8a8aa0; font-size: 14px; max-width: 100%; overflow-wrap: break-word; }
+  a { color: #a78bfa; }
+</style>
+</head>
+<body>
+<div class="brand">Digital Twin — Video</div>
+<select id="persona-select"><option>loading…</option></select>
+<div id="frame-wrap"></div>
+<button id="start-btn">Start conversation</button>
+<div id="status">Requires TAVUS_API_KEY to be set on the server — see <a href="/brain">text chat</a> or <a href="/talk">voice chat</a> for a key-free demo.</div>
+<div><a href="https://github.com/lapat/digital-twin">View source on GitHub ↗</a></div>
+
+<script>
+const frameWrap = document.getElementById('frame-wrap');
+const startBtn = document.getElementById('start-btn');
+const statusEl = document.getElementById('status');
+const personaSelect = document.getElementById('persona-select');
+
+let personaId = null;
+
+fetch('/api/personas').then(r => r.json()).then(({ defaultId, personas }) => {
+  personaSelect.innerHTML = personas.map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
+  personaSelect.value = defaultId;
+  personaId = defaultId;
+}).catch(() => { personaSelect.innerHTML = '<option>unknown</option>'; });
+
+personaSelect.addEventListener('change', () => { personaId = personaSelect.value; });
+
+startBtn.addEventListener('click', async () => {
+  startBtn.disabled = true;
+  statusEl.textContent = 'Starting…';
+  try {
+    const res = await fetch('/api/avatar/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to start');
+
+    const iframe = document.createElement('iframe');
+    iframe.src = data.conversationUrl;
+    iframe.allow = 'camera; microphone; autoplay';
+    frameWrap.innerHTML = '';
+    frameWrap.appendChild(iframe);
+    statusEl.textContent = 'Connected.';
+    startBtn.style.display = 'none';
+  } catch (err) {
+    statusEl.textContent = `Error: ${err.message}`;
+    startBtn.disabled = false;
+  }
+});
+</script>
+</body>
+</html>

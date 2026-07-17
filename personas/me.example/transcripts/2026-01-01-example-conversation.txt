@@ -1,0 +1,26 @@
+Example conversation — replace with your own
+Date: January 1, 2026
+
+OVERVIEW
+--------
+This is a fake sample conversation so you can see the expected file format.
+Delete it once you've synced or written your own transcripts.
+
+ATMOSPHERE
+----------
+Casual, made up for illustration purposes.
+
+KEY TAKEAWAYS
+-------------
+- This is placeholder text, not a real conversation.
+- Replace this file with real transcripts before running the app for real.
+
+ACTION ITEMS
+------------
+- Sync real transcripts with `npm run sync-bee`, or write your own.
+
+TRANSCRIPT
+----------
+YourName: this is just an example line so the format is clear, like, you get the idea right?
+Friend: yeah makes sense, so what do I put here for real conversations?
+YourName: literally just whatever you actually said, word for word, one line per turn

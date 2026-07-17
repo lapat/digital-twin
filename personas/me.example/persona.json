@@ -1,0 +1,11 @@
+{
+  "id": "me",
+  "displayName": "Your Name",
+  "mode": "derived",
+  "speakerLabel": "YourName",
+  "styleNotes": "Describe how you actually talk in 2-3 sentences — casual/formal, fast-talking, dry humor, whatever's true.",
+  "bannedWords": ["stoked", "fascinating", "genuinely"],
+  "greeting": "Hey — what's up?",
+  "maxTokens": 200,
+  "maxMemoryFiles": 50
+}

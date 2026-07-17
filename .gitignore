@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+.DS_Store
+
+# Your own persona data — never committed. Only the bundled demo persona
+# (personas/nixon) ships in this repo.
+personas/me/
+public/audio/

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Digital Twin — Talk</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: #0a0a0f; color: #e8e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    height: 100vh; height: 100dvh; display: flex; flex-direction: column;
+    overflow-x: hidden;
+  }
+  header {
+    padding: 12px 16px; background: #0f0f1a; border-bottom: 1px solid #1e1e2e;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px;
+  }
+  .brand { font-size: 17px; font-weight: 700; color: #a78bfa; white-space: nowrap; }
+  select#persona-select {
+    background: #1e1a3a; color: #a78bfa; border: 1px solid #3a2f6b; border-radius: 6px;
+    padding: 6px 10px; font-size: 14px; font-weight: 600; cursor: pointer; max-width: 100%;
+  }
+  .nav-links { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+  .nav-links a { font-size: 13px; white-space: nowrap; }
+  #messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: min(640px, 88%); padding: 10px 14px; border-radius: 10px; line-height: 1.45; font-size: 15px; overflow-wrap: break-word; word-break: break-word; }
+  .msg.user { align-self: flex-end; background: #2a2450; }
+  .msg.assistant { align-self: flex-start; background: #16162a; border: 1px solid #232336; }
+  .msg.assistant.speaking { border-color: #7c3aed; }
+  form {
+    display: flex; gap: 8px; padding: 12px 16px; background: #0f0f1a; border-top: 1px solid #1e1e2e; align-items: center;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  input {
+    flex: 1; min-width: 0; background: #16162a; border: 1px solid #232336; border-radius: 8px;
+    padding: 12px 14px; color: #e8e8f0; font-size: 16px; outline: none;
+  }
+  input:focus { border-color: #7c3aed; }
+  button {
+    background: #7c3aed; color: white; border: none; border-radius: 8px;
+    padding: 12px 18px; font-weight: 600; cursor: pointer; font-size: 15px;
+    min-height: 44px; flex-shrink: 0;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #mic-btn { width: 44px; height: 44px; padding: 0; border-radius: 50%; font-size: 18px; flex-shrink: 0; }
+  #mic-btn.listening { background: #dc2626; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  #banner { padding: 10px 16px; background: #241a1a; color: #f3a; font-size: 13px; border-bottom: 1px solid #3a2020; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Digital Twin — Talk</span>
+  <select id="persona-select"><option>loading…</option></select>
+  <span class="nav-links">
+    <a href="/brain" style="color:#a78bfa;">Text chat →</a>
+    <a href="https://github.com/lapat/digital-twin" style="color:#8a8aa0;">GitHub ↗</a>
+  </span>
+</header>
+<div id="banner"></div>
+<div id="messages"></div>
+<form id="form">
+  <button type="button" id="mic-btn" title="Click and speak">🎤</button>
+  <input id="input" autocomplete="off" placeholder="Type, or click the mic and talk…" />
+  <button id="send">Send</button>
+</form>
+
+<script>
+const sessionId = localStorage.getItem('twinSessionId') ||
+  (() => { const id = crypto.randomUUID(); localStorage.setItem('twinSessionId', id); return id; })();
+
+const messagesEl = document.getElementById('messages');
+const form = document.getElementById('form');
+const input = document.getElementById('input');
+const sendBtn = document.getElementById('send');
+const micBtn = document.getElementById('mic-btn');
+const personaSelect = document.getElementById('persona-select');
+const banner = document.getElementById('banner');
+
+let personaId = null;
+let personasById = {};
+let voiceAvailable = false;
+
+function showBanner(text) {
+  banner.textContent = text;
+  banner.style.display = 'block';
+}
+function hideBanner() {
+  banner.style.display = 'none';
+}
+
+function addMessage(role, text) {
+  const el = document.createElement('div');
+  el.className = `msg ${role}`;
+  el.textContent = text;
+  messagesEl.appendChild(el);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return el;
+}
+
+function switchPersona(id) {
+  personaId = id;
+  const p = personasById[id];
+  voiceAvailable = p.voiceAvailable;
+  messagesEl.innerHTML = '';
+  addMessage('assistant', p.greeting);
+  hideBanner();
+  if (!voiceAvailable) {
+    showBanner('This persona has no voice configured (needs ELEVENLABS_API_KEY + a voice). Replies will show as text only.');
+  }
+  micBtn.disabled = !voiceAvailable || !speechSupported();
+}
+
+fetch('/api/personas').then(r => r.json()).then(({ defaultId, personas }) => {
+  personasById = Object.fromEntries(personas.map(p => [p.id, p]));
+  personaSelect.innerHTML = personas.map(p => `<option value="${p.id}">${p.displayName}</option>`).join('');
+  personaSelect.value = defaultId;
+  switchPersona(defaultId);
+}).catch(() => { personaSelect.innerHTML = '<option>unknown</option>'; });
+
+personaSelect.addEventListener('change', () => switchPersona(personaSelect.value));
+
+function speechSupported() {
+  return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+}
+if (!speechSupported()) {
+  micBtn.title = 'Voice input needs Chrome or Edge';
+}
+
+async function playReply(replyEl, text) {
+  if (!voiceAvailable) return;
+  replyEl.classList.add('speaking');
+  try {
+    const res = await fetch('/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, personaId }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'speak failed');
+    const blob = await res.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    // A stalled/broken audio device (play() "succeeds" but onended never
+    // fires) must never hang the UI forever — this timeout is the actual
+    // safety net, not just an optimization.
+    await new Promise((resolve) => {
+      const timeout = setTimeout(resolve, 20_000);
+      const done = () => { clearTimeout(timeout); resolve(); };
+      audio.onended = done;
+      audio.onerror = done;
+      audio.play().catch(done);
+    });
+  } catch (err) {
+    console.error('Playback error:', err.message);
+  } finally {
+    replyEl.classList.remove('speaking');
+  }
+}
+
+// A disabled submit *button* does NOT stop Enter from re-submitting the
+// form — typing fast and hitting Enter repeatedly (or talking again before
+// the reply finished) fired overlapping /api/chat requests on the same
+// session, and the resulting mixed-up concurrent streams produced visibly
+// truncated replies. This flag is the actual fix, covering both the
+// text-input and voice-input entry points since both call sendMessage().
+let sending = false;
+
+async function sendMessage(text) {
+  if (sending || !text || !personaId) return;
+  sending = true;
+  addMessage('user', text);
+  input.value = '';
+  sendBtn.disabled = true;
+
+  const replyEl = addMessage('assistant', '…');
+  replyEl.textContent = '';
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, sessionId, personaId }),
+    });
+    if (res.status === 429) {
+      const data = await res.json();
+      replyEl.textContent = data.error;
+      return;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullReply = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = JSON.parse(line.slice(6));
+        if (data.token) { fullReply += data.token; replyEl.textContent += data.token; }
+        if (data.error) replyEl.textContent = `Error: ${data.error}`;
+      }
+    }
+    if (fullReply) await playReply(replyEl, fullReply);
+  } catch (err) {
+    replyEl.textContent = `Error: ${err.message}`;
+  } finally {
+    sending = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  sendMessage(input.value.trim());
+});
+
+// ── Voice input (Web Speech API — free, built into Chrome/Edge) ────────────
+
+let recognition = null;
+if (speechSupported()) {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    input.value = transcript;
+    sendMessage(transcript);
+  };
+  recognition.onerror = () => micBtn.classList.remove('listening');
+  recognition.onend = () => micBtn.classList.remove('listening');
+
+  micBtn.addEventListener('click', () => {
+    micBtn.classList.add('listening');
+    recognition.start();
+  });
+}
+</script>
+</body>
+</html>

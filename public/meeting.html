@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Digital Twin — Meeting Room</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: #0a0a0f; color: #e8e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    height: 100vh; height: 100dvh; display: flex; flex-direction: column;
+    overflow-x: hidden;
+  }
+  header {
+    padding: 12px 16px; background: #0f0f1a; border-bottom: 1px solid #1e1e2e;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap; row-gap: 8px;
+  }
+  .brand { font-size: 17px; font-weight: 700; color: #a78bfa; white-space: nowrap; }
+  .nav-links { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+  .nav-links a { font-size: 13px; white-space: nowrap; }
+  #setup { padding: 16px; display: flex; flex-direction: column; gap: 16px; max-width: 640px; overflow-y: auto; }
+  #participants { display: flex; flex-wrap: wrap; gap: 10px; }
+  .persona-check {
+    display: flex; align-items: center; gap: 6px; background: #16162a; border: 1px solid #232336;
+    border-radius: 8px; padding: 10px 14px; cursor: pointer; font-size: 14px; min-height: 44px;
+  }
+  .persona-check.checked { border-color: #7c3aed; background: #1e1a3a; }
+  input[type="text"] {
+    background: #16162a; border: 1px solid #232336; border-radius: 8px;
+    padding: 12px 14px; color: #e8e8f0; font-size: 16px; outline: none; width: 100%; min-width: 0;
+  }
+  input[type="text"]:focus { border-color: #7c3aed; }
+  button {
+    background: #7c3aed; color: white; border: none; border-radius: 8px;
+    padding: 12px 18px; font-weight: 600; cursor: pointer; font-size: 15px; min-height: 44px;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  #messages { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 16px 16px; display: none; flex-direction: column; gap: 12px; }
+  .msg { max-width: min(640px, 88%); padding: 10px 14px; border-radius: 10px; line-height: 1.45; font-size: 15px; background: #16162a; border: 1px solid #232336; overflow-wrap: break-word; word-break: break-word; }
+  .msg.human { align-self: flex-end; background: #2a2450; }
+  .msg.speaking { border-color: #7c3aed; }
+  .msg .speaker { font-size: 12px; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
+  .msg.human .speaker { color: #c4b5fd; }
+  #status { padding: 8px 16px; color: #8a8aa0; font-size: 13px; }
+  #interject-bar {
+    display: none; gap: 8px; padding: 12px 16px; background: #0f0f1a; border-top: 1px solid #1e1e2e;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+  #interject-bar input { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">Digital Twin — Meeting Room</span>
+  <a href="/brain" style="margin-left:auto;color:#a78bfa;font-size:13px;">Text chat →</a>
+</header>
+
+<div id="setup">
+  <div>Pick at least 2 personas, then give them a topic to discuss:</div>
+  <div id="participants"><em>loading…</em></div>
+  <input type="text" id="topic" placeholder="e.g. Should we build the wall or tear it down?" />
+  <button id="start-btn" style="align-self:flex-start;">Start meeting</button>
+</div>
+
+<div id="status"></div>
+<div id="messages"></div>
+<form id="interject-bar">
+  <input type="text" id="interject-input" placeholder="Jump in — say something and the next speaker will respond to you…" />
+  <button id="interject-btn" type="submit">Interject</button>
+</form>
+
+<script>
+const participantsEl = document.getElementById('participants');
+const topicInput = document.getElementById('topic');
+const startBtn = document.getElementById('start-btn');
+const statusEl = document.getElementById('status');
+const messagesEl = document.getElementById('messages');
+const setupEl = document.getElementById('setup');
+const interjectBar = document.getElementById('interject-bar');
+const interjectInput = document.getElementById('interject-input');
+
+let personasById = {};
+const selected = new Set();
+let currentMeetingId = null;
+
+fetch('/api/personas').then(r => r.json()).then(({ personas }) => {
+  personasById = Object.fromEntries(personas.map(p => [p.id, p]));
+  participantsEl.innerHTML = '';
+  personas.forEach(p => {
+    const el = document.createElement('label');
+    el.className = 'persona-check';
+    el.innerHTML = `<input type="checkbox" value="${p.id}" style="display:none" /> ${p.displayName}`;
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (selected.has(p.id)) { selected.delete(p.id); el.classList.remove('checked'); }
+      else { selected.add(p.id); el.classList.add('checked'); }
+    });
+    participantsEl.appendChild(el);
+  });
+}).catch(() => { participantsEl.textContent = 'Failed to load personas.'; });
+
+function addTurn(speakerName, text, isHuman = false) {
+  const el = document.createElement('div');
+  el.className = `msg${isHuman ? ' human' : ''}`;
+  el.innerHTML = `<div class="speaker"></div><div class="text"></div>`;
+  el.querySelector('.speaker').textContent = speakerName;
+  el.querySelector('.text').textContent = text;
+  messagesEl.appendChild(el);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return el;
+}
+
+// Audio playback IS the pacing — waiting for one speaker's line to
+// actually finish playing before the next one starts is what makes this
+// feel like people talking instead of a text log dumping out instantly.
+// A small random beat before starting mimics the natural gap between one
+// person finishing and the next one picking up.
+//
+// Interjecting should cut off whoever's talking immediately rather than
+// making you wait them out — stopCurrentTurn is how the interject handler
+// reaches into whatever speakTurn is currently doing (the pre-speech pause,
+// the /api/speak fetch, or actual audio playback) and ends it right away.
+let stopCurrentTurn = null;
+
+async function speakTurn(el, personaId, text) {
+  if (!personasById[personaId]?.voiceAvailable) return;
+
+  let stopped = false;
+  stopCurrentTurn = () => { stopped = true; };
+
+  await new Promise(r => setTimeout(r, 250 + Math.random() * 400));
+  if (stopped) { stopCurrentTurn = null; return; }
+
+  el.classList.add('speaking');
+  try {
+    const res = await fetch('/api/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, personaId }),
+    });
+    if (!res.ok || stopped) return;
+    const blob = await res.blob();
+    if (stopped) return;
+    const audio = new Audio(URL.createObjectURL(blob));
+    // A stalled/broken audio device (play() "succeeds" but onended never
+    // fires) must never hang the whole meeting forever — this timeout is
+    // the actual safety net, not just an optimization.
+    await new Promise((resolve) => {
+      const timeout = setTimeout(resolve, 20_000);
+      const done = () => { clearTimeout(timeout); resolve(); };
+      audio.onended = done;
+      audio.onerror = done;
+      stopCurrentTurn = () => { audio.pause(); done(); };
+      audio.play().catch(done);
+    });
+  } catch (err) {
+    console.error('Meeting playback error:', err.message);
+  } finally {
+    el.classList.remove('speaking');
+    stopCurrentTurn = null;
+  }
+}
+
+async function runMeeting(meetingId, maxTurns) {
+  for (let i = 0; i < maxTurns; i++) {
+    statusEl.textContent = `Turn ${i + 1} of ${maxTurns}…`;
+    const res = await fetch('/api/meeting/next', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meetingId }),
+    });
+    const data = await res.json();
+    if (!res.ok) { statusEl.textContent = `Error: ${data.error}`; return; }
+    if (data.done && !data.text) break;
+    const el = addTurn(data.speakerName, data.text);
+    await speakTurn(el, data.speakerId, data.text);
+    if (data.done) break;
+  }
+  statusEl.textContent = 'Meeting ended.';
+  interjectBar.style.display = 'none';
+}
+
+startBtn.addEventListener('click', async () => {
+  const topic = topicInput.value.trim();
+  if (selected.size < 2) { statusEl.textContent = 'Pick at least 2 personas.'; return; }
+  if (!topic) { statusEl.textContent = 'Give them a topic.'; return; }
+
+  startBtn.disabled = true;
+  setupEl.style.display = 'none';
+  messagesEl.style.display = 'flex';
+  interjectBar.style.display = 'flex';
+  statusEl.textContent = 'Starting…';
+
+  try {
+    const res = await fetch('/api/meeting/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ personaIds: [...selected], topic }),
+    });
+    const data = await res.json();
+    if (!res.ok) { statusEl.textContent = `Error: ${data.error}`; return; }
+    currentMeetingId = data.meetingId;
+    await runMeeting(data.meetingId, data.maxTurns);
+  } catch (err) {
+    statusEl.textContent = `Error: ${err.message}`;
+  }
+});
+
+// Fires independently of the turn loop above — the interjection lands in
+// the server-side transcript immediately, and whichever /api/meeting/next
+// call is next in flight (or about to start) picks it up as the most
+// recent line, so the next speaker responds to you directly. Whoever's
+// currently talking gets cut off right away (stopCurrentTurn) rather than
+// making you wait for them to finish — that's the whole point of being
+// able to jump in.
+let interjecting = false;
+interjectBar.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (interjecting) return;
+  const text = interjectInput.value.trim();
+  if (!text || !currentMeetingId) return;
+  interjecting = true;
+  interjectInput.value = '';
+  stopCurrentTurn?.();
+  try {
+    const res = await fetch('/api/meeting/interject', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ meetingId: currentMeetingId, text }),
+    });
+    if (res.ok) addTurn('You', text, true);
+    else { const data = await res.json(); statusEl.textContent = `Error: ${data.error}`; }
+  } catch (err) {
+    statusEl.textContent = `Error: ${err.message}`;
+  } finally {
+    interjecting = false;
+  }
+});
+</script>
+</body>
+</html>

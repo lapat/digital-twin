@@ -1,0 +1,7 @@
+node_modules
+.git
+.env
+personas/me
+public/audio
+test
+.github
