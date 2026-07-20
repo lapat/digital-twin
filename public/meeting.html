@@ -48,6 +48,10 @@
     background: #1e1e2e; border: 1px solid #232336; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
   }
   .persona-check .text-only-tag { margin-left: 6px; }
+  .audio-failed-tag {
+    display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 600; color: #f0a8a8;
+    background: #2e1a1a; border: 1px solid #4a2626; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
+  }
   #status { padding: 8px 16px; color: #8a8aa0; font-size: 13px; }
   #interject-bar {
     display: none; gap: 8px; padding: 12px 16px; background: #0f0f1a; border-top: 1px solid #1e1e2e;
@@ -124,6 +128,20 @@ function addTurn(speakerName, text, isHuman = false, personaId = null) {
   return el;
 }
 
+// TTS failing must never look identical to "no error happened" — a silent
+// return here is indistinguishable from playback just not being triggered,
+// which is exactly what made a real ElevenLabs/network failure read as an
+// unexplained bug instead of a visible, transient error.
+function markAudioFailed(el, detail) {
+  console.error(`Meeting playback error: ${detail}`);
+  if (el.querySelector('.audio-failed-tag')) return;
+  const tag = document.createElement('span');
+  tag.className = 'audio-failed-tag';
+  tag.title = detail;
+  tag.textContent = 'AUDIO FAILED';
+  el.querySelector('.speaker').appendChild(tag);
+}
+
 // Audio playback IS the pacing — waiting for one speaker's line to
 // actually finish playing before the next one starts is what makes this
 // feel like people talking instead of a text log dumping out instantly.
@@ -166,7 +184,13 @@ async function speakTurn(el, personaId, text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, personaId }),
     });
-    if (!res.ok || stopped) return;
+    if (stopped) return;
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`;
+      try { detail = (await res.json()).error || detail; } catch { /* body wasn't JSON */ }
+      markAudioFailed(el, detail);
+      return;
+    }
     const blob = await res.blob();
     if (stopped) return;
     const audio = new Audio(URL.createObjectURL(blob));
@@ -182,7 +206,7 @@ async function speakTurn(el, personaId, text) {
       audio.play().catch(done);
     });
   } catch (err) {
-    console.error('Meeting playback error:', err.message);
+    markAudioFailed(el, err.message);
   } finally {
     el.classList.remove('speaking');
     stopCurrentTurn = null;
