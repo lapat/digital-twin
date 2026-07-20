@@ -146,9 +146,18 @@ function unlockAudioForMobile() {
   if (audioUnlocked) return Promise.resolve();
   audioUnlocked = true;
   ttsAudio = new Audio(SILENT_WAV);
-  return ttsAudio.play()
+  const settle = ttsAudio.play()
     .then(() => console.log('[talk] audio unlocked for mobile playback'))
     .catch((err) => console.warn('[talk] audio unlock failed (desktop browsers usually don\'t need it):', err.message));
+  // On some mobile browsers this play() promise has been observed to never
+  // settle at all — a hung unlock must never be able to block sending a
+  // message. Race it against a hard timeout so the tap always leads
+  // somewhere, even if that first reply's audio is skipped.
+  const timeout = new Promise((resolve) => setTimeout(() => {
+    console.warn('[talk] audio unlock timed out after 2s — proceeding without it');
+    resolve();
+  }, 2000));
+  return Promise.race([settle, timeout]);
 }
 
 function markPlaybackFailed(replyEl, detail) {

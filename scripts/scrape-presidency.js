@@ -46,6 +46,10 @@ const SOURCES_BY_PERSONA = {
     { url: 'https://www.presidency.ucsb.edu/documents/inaugural-address-8', date: '1933-03-04', title: 'First Inaugural Address' },
     { url: 'https://www.presidency.ucsb.edu/documents/fireside-chat-6', date: '1942-02-23', title: 'Fireside Chat on the Progress of the War' },
   ],
+  trump: [
+    { url: 'https://www.presidency.ucsb.edu/documents/inaugural-address-54', date: '2025-01-20', title: 'Second Inaugural Address' },
+    { url: 'https://www.presidency.ucsb.edu/documents/farewell-address-the-nation-3', date: '2021-01-19', title: 'Farewell Address to the Nation' },
+  ],
 };
 
 const SOURCES = SOURCES_BY_PERSONA[personaId];

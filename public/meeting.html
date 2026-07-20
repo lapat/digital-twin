@@ -172,9 +172,18 @@ const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAE
 // which speakTurn would otherwise misreport as a real playback failure.
 function unlockAudioForMobile() {
   ttsAudio = new Audio(SILENT_WAV);
-  return ttsAudio.play()
+  const settle = ttsAudio.play()
     .then(() => console.log('[meeting] audio unlocked for mobile playback'))
     .catch((err) => console.warn('[meeting] audio unlock failed (desktop browsers usually don\'t need it):', err.message));
+  // On some mobile browsers this play() promise has been observed to never
+  // settle at all — a hung unlock must never be able to block the entire
+  // meeting from starting. Race it against a hard timeout so the tap
+  // always leads somewhere, even if that first turn's audio is skipped.
+  const timeout = new Promise((resolve) => setTimeout(() => {
+    console.warn('[meeting] audio unlock timed out after 2s — proceeding without it');
+    resolve();
+  }, 2000));
+  return Promise.race([settle, timeout]);
 }
 
 async function speakTurn(el, personaId, text) {

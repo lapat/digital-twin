@@ -6,8 +6,9 @@ test('loads every bundled persona and excludes the me.example template', () => {
   const registry = loadAllPersonas();
   const ids = [...registry.keys()].sort();
   assert.deepEqual(ids, [
-    'chaplin', 'cobain', 'fdr', 'groucho', 'kennedy',
-    'louisarmstrong', 'nixon', 'reagan', 'wcfields', 'willrogers',
+    'chaplin', 'cobain', 'einstein', 'fdr', 'gildaradner', 'groucho',
+    'kanyewest', 'kennedy', 'louisarmstrong', 'michaeljordan', 'nixon',
+    'reagan', 'trump', 'wcfields', 'willrogers',
   ]);
 });
 
@@ -26,9 +27,11 @@ test('personas with a bundled voice resolve a voiceId', () => {
   }
 });
 
-test('louisarmstrong ships text-only, no voice clone', () => {
+test('personas without a sourced voice ship text-only, no voice clone', () => {
   const registry = loadAllPersonas();
-  assert.equal(registry.get('louisarmstrong').voiceId, null);
+  for (const id of ['louisarmstrong', 'trump', 'gildaradner', 'kanyewest', 'michaeljordan', 'einstein']) {
+    assert.equal(registry.get(id).voiceId, null, `${id} should have no voiceId`);
+  }
 });
 
 test('a per-persona env override wins over the bundled voiceId', () => {
