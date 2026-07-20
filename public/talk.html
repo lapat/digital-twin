@@ -29,6 +29,7 @@
   .msg.user { align-self: flex-end; background: #2a2450; }
   .msg.assistant { align-self: flex-start; background: #16162a; border: 1px solid #232336; }
   .msg.assistant.speaking { border-color: #7c3aed; }
+  .audio-failed-note { display: block; margin-top: 6px; font-size: 11px; font-weight: 600; color: #f0a8a8; }
   form {
     display: flex; gap: 8px; padding: 12px 16px; background: #0f0f1a; border-top: 1px solid #1e1e2e; align-items: center;
     padding-bottom: max(12px, env(safe-area-inset-bottom));
@@ -129,6 +130,36 @@ if (!speechSupported()) {
   micBtn.title = 'Voice input needs Chrome or Edge';
 }
 
+// Mobile Safari/Chrome only let a <audio> element autoplay without a fresh
+// tap if that exact element was already "unlocked" by a play() call made
+// directly inside a real user-gesture handler. One reused, unlocked
+// element (instead of `new Audio()` per reply) keeps every reply playable
+// for the rest of the session, on mobile included.
+let ttsAudio = null;
+let audioUnlocked = false;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+// Returns the settle promise so callers can await it — reassigning .src on
+// this element before the unlock's own play() call has settled aborts that
+// pending play() with "AbortError: interrupted by a new load request",
+// which playReply would otherwise misreport as a real playback failure.
+function unlockAudioForMobile() {
+  if (audioUnlocked) return Promise.resolve();
+  audioUnlocked = true;
+  ttsAudio = new Audio(SILENT_WAV);
+  return ttsAudio.play()
+    .then(() => console.log('[talk] audio unlocked for mobile playback'))
+    .catch((err) => console.warn('[talk] audio unlock failed (desktop browsers usually don\'t need it):', err.message));
+}
+
+function markPlaybackFailed(replyEl, detail) {
+  console.error(`[talk] playback failed: ${detail}`);
+  if (replyEl.querySelector('.audio-failed-note')) return;
+  const note = document.createElement('span');
+  note.className = 'audio-failed-note';
+  note.textContent = `🔇 Audio failed: ${detail}`;
+  replyEl.appendChild(note);
+}
+
 async function playReply(replyEl, text) {
   if (!voiceAvailable) return;
   replyEl.classList.add('speaking');
@@ -138,21 +169,35 @@ async function playReply(replyEl, text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, personaId }),
     });
-    if (!res.ok) throw new Error((await res.json()).error || 'speak failed');
+    console.log(`[talk] /api/speak → HTTP ${res.status}`);
+    if (!res.ok) {
+      let detail = `HTTP ${res.status}`;
+      try { detail = (await res.json()).error || detail; } catch { /* body wasn't JSON */ }
+      markPlaybackFailed(replyEl, detail);
+      return;
+    }
     const blob = await res.blob();
-    const audio = new Audio(URL.createObjectURL(blob));
+    const objectUrl = URL.createObjectURL(blob);
+    const audio = ttsAudio || new Audio();
+    audio.src = objectUrl;
     // A stalled/broken audio device (play() "succeeds" but onended never
     // fires) must never hang the UI forever — this timeout is the actual
     // safety net, not just an optimization.
     await new Promise((resolve) => {
-      const timeout = setTimeout(resolve, 20_000);
-      const done = () => { clearTimeout(timeout); resolve(); };
+      const timeout = setTimeout(() => { console.warn('[talk] playback hit the 20s safety timeout without ending'); resolve(); }, 20_000);
+      const done = () => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); resolve(); };
       audio.onended = done;
-      audio.onerror = done;
-      audio.play().catch(done);
+      audio.onerror = () => { console.warn('[talk] audio element error:', audio.error); done(); };
+      audio.play()
+        .then(() => console.log('[talk] play() resolved'))
+        .catch((err) => {
+          console.error('[talk] play() REJECTED — likely a mobile autoplay block:', err.name, err.message);
+          markPlaybackFailed(replyEl, `${err.name} — ${err.message}`);
+          done();
+        });
     });
   } catch (err) {
-    console.error('Playback error:', err.message);
+    markPlaybackFailed(replyEl, err.message);
   } finally {
     replyEl.classList.remove('speaking');
   }
@@ -214,8 +259,9 @@ async function sendMessage(text) {
   }
 }
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  await unlockAudioForMobile();
   sendMessage(input.value.trim());
 });
 
@@ -237,7 +283,8 @@ if (speechSupported()) {
   recognition.onerror = () => micBtn.classList.remove('listening');
   recognition.onend = () => micBtn.classList.remove('listening');
 
-  micBtn.addEventListener('click', () => {
+  micBtn.addEventListener('click', async () => {
+    await unlockAudioForMobile();
     micBtn.classList.add('listening');
     recognition.start();
   });

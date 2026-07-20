@@ -154,7 +154,31 @@ function markAudioFailed(el, detail) {
 // the /api/speak fetch, or actual audio playback) and ends it right away.
 let stopCurrentTurn = null;
 
+// Mobile Safari (and mobile Chrome) only let a <audio> element autoplay
+// without a fresh tap if that exact element was already "unlocked" by a
+// play() call made directly inside a real user-gesture handler. Creating a
+// brand-new Audio() object per turn (the old approach) meant only the
+// very first turn — still riding the "Start meeting" tap — was allowed to
+// play; every turn after that was a brand-new, un-unlocked element and got
+// silently blocked. That exactly matches "first message has audio, every
+// one after it doesn't, only on mobile." Fix: one Audio element, unlocked
+// once on tap, reused (just swap .src) for every turn all meeting long.
+let ttsAudio = null;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
+// Returns the settle promise so callers can await it — reassigning .src on
+// this element before the unlock's own play() call has settled aborts that
+// pending play() with "AbortError: interrupted by a new load request",
+// which speakTurn would otherwise misreport as a real playback failure.
+function unlockAudioForMobile() {
+  ttsAudio = new Audio(SILENT_WAV);
+  return ttsAudio.play()
+    .then(() => console.log('[meeting] audio unlocked for mobile playback'))
+    .catch((err) => console.warn('[meeting] audio unlock failed (desktop browsers usually don\'t need it):', err.message));
+}
+
 async function speakTurn(el, personaId, text) {
+  console.log(`[meeting] speakTurn start — persona=${personaId} voiceAvailable=${personasById[personaId]?.voiceAvailable} textLen=${text.length}`);
   let stopped = false;
   stopCurrentTurn = () => { stopped = true; };
 
@@ -184,6 +208,7 @@ async function speakTurn(el, personaId, text) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text, personaId }),
     });
+    console.log(`[meeting] /api/speak for ${personaId} → HTTP ${res.status}`);
     if (stopped) return;
     if (!res.ok) {
       let detail = `HTTP ${res.status}`;
@@ -193,17 +218,25 @@ async function speakTurn(el, personaId, text) {
     }
     const blob = await res.blob();
     if (stopped) return;
-    const audio = new Audio(URL.createObjectURL(blob));
+    const objectUrl = URL.createObjectURL(blob);
+    const audio = ttsAudio || new Audio();
+    audio.src = objectUrl;
     // A stalled/broken audio device (play() "succeeds" but onended never
     // fires) must never hang the whole meeting forever — this timeout is
     // the actual safety net, not just an optimization.
     await new Promise((resolve) => {
-      const timeout = setTimeout(resolve, 20_000);
-      const done = () => { clearTimeout(timeout); resolve(); };
-      audio.onended = done;
-      audio.onerror = done;
+      const timeout = setTimeout(() => { console.warn(`[meeting] playback for ${personaId} hit the 20s safety timeout without ending`); resolve(); }, 20_000);
+      const done = () => { clearTimeout(timeout); URL.revokeObjectURL(objectUrl); resolve(); };
+      audio.onended = () => { console.log(`[meeting] playback ended normally for ${personaId}`); done(); };
+      audio.onerror = () => { console.warn(`[meeting] audio element error for ${personaId}:`, audio.error); done(); };
       stopCurrentTurn = () => { audio.pause(); done(); };
-      audio.play().catch(done);
+      audio.play()
+        .then(() => console.log(`[meeting] play() resolved for ${personaId}`))
+        .catch((err) => {
+          console.error(`[meeting] play() REJECTED for ${personaId} — likely a mobile autoplay block:`, err.name, err.message);
+          markAudioFailed(el, `Playback blocked: ${err.name} — ${err.message}`);
+          done();
+        });
     });
   } catch (err) {
     markAudioFailed(el, err.message);
@@ -236,6 +269,13 @@ startBtn.addEventListener('click', async () => {
   const topic = topicInput.value.trim();
   if (selected.size < 2) { statusEl.textContent = 'Pick at least 2 personas.'; return; }
   if (!topic) { statusEl.textContent = 'Give them a topic.'; return; }
+
+  // The play() call itself must happen synchronously inside this click
+  // handler — that's what gives mobile browsers permission to keep playing
+  // audio through this element for the rest of the meeting. Awaiting its
+  // settle afterward is fine (doesn't need to be sync) and avoids the
+  // element's first real turn racing the unlock clip's own play() promise.
+  await unlockAudioForMobile();
 
   startBtn.disabled = true;
   setupEl.style.display = 'none';
