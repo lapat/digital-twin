@@ -63,7 +63,7 @@
 <div id="banner"></div>
 <div id="messages"></div>
 <form id="form">
-  <button type="button" id="mic-btn" title="Click and speak">🎤</button>
+  <button type="button" id="mic-btn" title="Click to speak, click again when you're done">🎤</button>
   <input id="input" autocomplete="off" placeholder="Type, or click the mic and talk…" />
   <button id="send">Send</button>
 </form>
@@ -276,24 +276,53 @@ form.addEventListener('submit', async (e) => {
 
 // ── Voice input (Web Speech API — free, built into Chrome/Edge) ────────────
 
+// continuous=false (the old setting) let the browser's own silence
+// detection decide when you're "done" talking and cut the mic — a normal
+// mid-sentence pause reads as the end of speech. continuous=true keeps
+// listening across pauses; the user explicitly taps the mic again to say
+// "I'm done," instead of the API guessing.
 let recognition = null;
+let listening = false;
+let finalTranscript = '';
+
 if (speechSupported()) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = false;
+  recognition.continuous = true;
+  recognition.interimResults = true;
   recognition.lang = 'en-US';
 
   recognition.onresult = (e) => {
-    const transcript = e.results[0][0].transcript;
-    input.value = transcript;
-    sendMessage(transcript);
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const transcript = e.results[i][0].transcript;
+      if (e.results[i].isFinal) finalTranscript += transcript + ' ';
+      else interim += transcript;
+    }
+    input.value = (finalTranscript + interim).trim();
   };
-  recognition.onerror = () => micBtn.classList.remove('listening');
-  recognition.onend = () => micBtn.classList.remove('listening');
+
+  const stopListening = () => {
+    listening = false;
+    micBtn.classList.remove('listening');
+    recognition.stop();
+    const text = (finalTranscript + input.value).trim() ? input.value.trim() : '';
+    finalTranscript = '';
+    if (text) sendMessage(text);
+  };
+
+  recognition.onerror = () => { listening = false; micBtn.classList.remove('listening'); };
+  // Some browsers still end the session on their own after a long silence
+  // even in continuous mode — treat that the same as tapping stop, so
+  // whatever was said gets sent instead of silently dropped.
+  recognition.onend = () => { if (listening) stopListening(); };
 
   micBtn.addEventListener('click', async () => {
+    if (listening) { stopListening(); return; }
     await unlockAudioForMobile();
+    listening = true;
+    finalTranscript = '';
+    input.value = '';
     micBtn.classList.add('listening');
     recognition.start();
   });
