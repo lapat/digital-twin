@@ -1,5 +1,18 @@
 # Digital Twin — Project Rules
 
+## PROJECT IDENTITY — read this first
+
+This is the **public** template project (GitHub `lapat/digital-twin`, HF
+Space `djkyoko/digital-twin`) — 15 generic historical/celebrity personas, no
+real personal data. It is a **separate, unrelated** project from
+`vibe/digitaltwin` ("Lou's Assistant" — Louis's real private twin, real
+transcripts, real voice clone, must stay private). If a session's cwd is
+`vibe/digitaltwin` but the work is about personas/HF Space/`djkyoko`, that
+work belongs here instead — don't touch this repo from that one's directory,
+and don't let this repo's files/routes/memory bleed into that one. See that
+project's CLAUDE.md for the reciprocal warning.
+
+
 ## HARD RULE: Keep Gemini token usage as cheap as possible — never trade cost for quality without saying so first
 
 This app runs on a real API key, often on a public demo (see README "Free

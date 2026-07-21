@@ -23,9 +23,12 @@ Ships with fifteen working demo personas out of the box — **Richard Nixon,
 Ronald Reagan, John F. Kennedy, FDR, Donald Trump, Will Rogers, Groucho
 Marx, Charlie Chaplin, W.C. Fields, Louis Armstrong, Kurt Cobain, Gilda
 Radner, Kanye West, Michael Jordan, and Albert Einstein** — each built
-from public, on-the-record speeches or interviews, Wikipedia, and (for
-nine of them, with real caveats on Cobain and Trump — see "Disclaimer")
-a real cloned voice. No personal data, no API keys required to try them.
+from public, on-the-record speeches or interviews, Wikipedia, and (twelve
+of the fifteen — Louis Armstrong, Trump, and Einstein are text-only, the
+latter two blocked by ElevenLabs' own voice-safety enforcement, not by
+choice; see "Disclaimer" for real caveats on the recently-deceased and
+living figures that *do* have a voice) a real cloned voice. No personal
+data, no API keys required to try them.
 Pick a persona from the dropdown on any page, or put two or more of them
 in the **meeting room** and give them a topic to argue about with each
 other. Fully responsive — works the same on a phone as a desktop.
@@ -53,8 +56,9 @@ this — you only need keys for the pieces you turn on (see below).
    every persona under `personas/` at startup, so one deployment serves
    all of them, not just one.
 4. **Voice chat** ([ElevenLabs](https://elevenlabs.io)) — `/talk`, type or
-   click the mic and talk, hear the persona's real voice reply. Nine of the
-   bundled personas ship a real cloned voice — see "ElevenLabs" below.
+   click the mic and talk, hear the persona's real voice reply. Twelve of
+   the fifteen bundled personas ship a real cloned voice — see "ElevenLabs"
+   below.
 5. **Meeting room** (`lib/meetingRoom.js`) — `/meeting`, pick 2+ personas
    and a topic, and they take turns responding to *each other* out loud,
    in their own real voices, not just to you. The prompt explicitly tells
@@ -90,7 +94,7 @@ Copy `.env.example` to `.env` and fill in only the keys for what you want:
 
 ### ElevenLabs (voice chat)
 [elevenlabs.io/app/settings/api-keys](https://elevenlabs.io/app/settings/api-keys) → create a key → `ELEVENLABS_API_KEY`.
-That alone is enough for nine of the fifteen bundled personas — each ships a
+That alone is enough for twelve of the fifteen bundled personas — each ships a
 `voice.voiceId` in its `persona.json` pointing at a voice cloned in the
 original template author's ElevenLabs account. **You won't have access to
 those specific voices** unless you're deploying under that same account —
@@ -262,49 +266,64 @@ run it by hand after every deploy.
 ## Disclaimer
 
 This project lets you build a voice/likeness clone of a real person and
-put it on the phone or video. Four different cases, four different bars:
+put it on the phone or video. Four different cases, four escalating bars —
+**read the fourth one before you assume the bundled roster is a safe
+default to copy.**
 
 - **Yourself, or someone who's clearly and knowingly consented** — the
   main use case this template is built for. Go ahead.
 - **A historical figure, safely removed from any active estate, from
-  their own public record** — ten of the fifteen bundled demos (Nixon,
-  Reagan, Kennedy, FDR, Will Rogers, Groucho Marx, Charlie Chaplin, W.C.
-  Fields, Louis Armstrong, Albert Einstein): decades gone, no one actively
-  enforcing rights over their likeness, built from their own on-the-record
-  speeches/interviews for text and (for nine of them — Louis Armstrong is
-  text-only, no clean source audio was found) a voice clone built from
-  their own real recordings.
+  their own public record** — Nixon, Reagan, Kennedy, FDR, Will Rogers,
+  Groucho Marx, Charlie Chaplin, and W.C. Fields: decades gone, no one
+  actively enforcing rights over their likeness, built from their own
+  on-the-record speeches/interviews for text and a voice clone built from
+  their own real recordings. Louis Armstrong is in this same low-risk
+  tier but text-only (no clean source audio was found). Einstein is also
+  historically low-risk but ended up text-only for an unrelated reason —
+  see the ElevenLabs safety-enforcement note below.
 - **A recently-deceased figure with an active estate — Kurt Cobain and
-  Gilda Radner, included as an explicit, informed choice by this repo's
-  author, not a default recommendation.** Cobain died in 1994; California's
-  postmortem right-of-publicity law runs 70 years after death, his estate
-  has actively protected his likeness before (blocking a planned
-  hologram), and his recordings are label-owned copyrighted material, not
-  public-domain government speeches like the presidents'. Radner died in
-  1989 and is a much lower-profile case (no comparable estate enforcement
-  history found), but is included text-only, no voice clone, as the more
-  cautious choice. Both are a materially different, higher-risk lane than
-  the 70+-years-gone/no-active-estate bar most of the roster meets — weigh
-  it deliberately if you're deciding whether to keep, extend, or remove
-  these in your own deployment.
-- **A living public figure — Donald Trump, Kanye West, Michael Jordan,
-  included text-only, no voice or video clone, as an explicit, informed
-  choice by this repo's author.** This is real, on-the-record public text
-  (speeches, interviews) recreated stylistically, not voice or likeness
-  cloning — that distinction matters: ElevenLabs' own policy explicitly
-  prohibits cloning the voice of an elected official or political
-  candidate (enforced by a technical "no-go voices" block, not just a ToS
-  line), and multiple state laws (Tennessee's ELVIS Act, California Civil
-  Code 3344, NY Civil Rights Law 50-51) plus a pending federal bill (the
-  NO FAKES Act) require consent for voice cloning specifically. This
-  repo does not do that for any living person, and each of these three
-  personas' `persona.json` includes an explicit disclaimer instructing
-  the model that it isn't a real-time source of that person's current
-  opinions. Voice or video cloning a living person without consent isn't
-  something this template will help you route around — text-only
-  stylistic recreation of their own public statements is a materially
-  lower bar, but still worth your own judgment before you extend it
-  further (e.g. adding a voice) in your own deployment.
+  Gilda Radner, both with real voice clones, included as an explicit,
+  informed choice by this repo's author, not a default recommendation.**
+  Cobain died in 1994; California's postmortem right-of-publicity law runs
+  70 years after death, his estate has actively protected his likeness
+  before (blocking a planned hologram), and his recordings are
+  label-owned copyrighted material, not public-domain government speeches
+  like the presidents'. Radner died in 1989 and is a lower-profile case
+  (no comparable estate enforcement history found), but the same
+  postmortem right-of-publicity exposure applies in principle. Both are a
+  materially different, higher-risk lane than the 70+-years-gone/
+  no-active-estate bar most of the roster meets.
+- **A living public figure — Kanye West and Michael Jordan, both with
+  real voice clones, included as an explicit, informed choice by this
+  repo's author, not a default recommendation and not legal advice that
+  this is safe.** This is the highest-risk tier in this roster. Multiple
+  state laws create real exposure for unauthorized voice cloning of a
+  real, living person: Tennessee's ELVIS Act makes it a **criminal**
+  offense, not just civil liability; California Civil Code 3344 and NY
+  Civil Rights Law 50-51 are civil right-of-publicity statutes; a federal
+  NO FAKES Act is pending. Each of these personas' `persona.json` includes
+  an explicit disclaimer instructing the model that it isn't a real-time
+  source of that person's current opinions, but that doesn't reduce the
+  underlying voice-cloning exposure. If you're extending or redeploying
+  this template, **this tier is the one to reconsider first**, not copy
+  by default — it was a deliberate, informed call for this specific
+  author's specific deployment, not a recommendation.
+
+  **Donald Trump is text-only, not by this repo's choice but because
+  ElevenLabs' own platform blocks it.** He was attempted at the same
+  explicit, informed risk tolerance as Kanye/Jordan — the clone-creation
+  API call succeeded, but the resulting voice was flagged post-creation
+  with `safety_control: "ENTERPRISE_BAN"` and every real text-to-speech
+  call against it returns HTTP 403. This confirms ElevenLabs' stated
+  policy against cloning elected officials/political candidates is
+  actually enforced, just asynchronously (after upload, not at it) rather
+  than blocking the upload itself — worth knowing if you're relying on
+  the platform to catch this for you at clone-creation time; it won't,
+  it catches it afterward. Einstein hit a lighter version of the same
+  enforcement (`ENTERPRISE_CAPTCHA` — a recognizable-identity flag, not
+  specific to living people) and is text-only for the same reason: the
+  clone exists but can't actually generate audio through a server-to-server
+  API call.
 
 If your own transcripts mention other people by name, be aware their
 words may end up reflected in the persona's memory — review before

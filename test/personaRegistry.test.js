@@ -22,14 +22,23 @@ test('each loaded persona has a non-empty system prompt and a transcript index',
 
 test('personas with a bundled voice resolve a voiceId', () => {
   const registry = loadAllPersonas();
-  for (const id of ['nixon', 'reagan', 'kennedy', 'fdr', 'willrogers', 'groucho', 'chaplin', 'wcfields', 'cobain']) {
+  for (const id of [
+    'nixon', 'reagan', 'kennedy', 'fdr', 'willrogers', 'groucho', 'chaplin',
+    'wcfields', 'cobain', 'kanyewest', 'michaeljordan', 'gildaradner',
+  ]) {
     assert.ok(registry.get(id).voiceId, `${id} should resolve a voiceId`);
   }
 });
 
-test('personas without a sourced voice ship text-only, no voice clone', () => {
+// Trump and Einstein are text-only not by choice but by ElevenLabs' own
+// safety enforcement: their clones were created successfully but flagged
+// post-creation (safety_control ENTERPRISE_BAN and ENTERPRISE_CAPTCHA
+// respectively) — every real /api/speak call for them 500s. Shipping a
+// voiceId that can never actually generate audio would be worse than
+// text-only, so they stay unset here regardless of persona.json wiring.
+test('personas without a usable voice ship text-only', () => {
   const registry = loadAllPersonas();
-  for (const id of ['louisarmstrong', 'trump', 'gildaradner', 'kanyewest', 'michaeljordan', 'einstein']) {
+  for (const id of ['louisarmstrong', 'trump', 'einstein']) {
     assert.equal(registry.get(id).voiceId, null, `${id} should have no voiceId`);
   }
 });
