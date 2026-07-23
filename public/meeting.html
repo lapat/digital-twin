@@ -43,11 +43,6 @@
   .msg.speaking { border-color: #7c3aed; }
   .msg .speaker { font-size: 12px; font-weight: 700; color: #a78bfa; margin-bottom: 4px; }
   .msg.human .speaker { color: #c4b5fd; }
-  .text-only-tag {
-    display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 600; color: #8a8aa0;
-    background: #1e1e2e; border: 1px solid #232336; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
-  }
-  .persona-check .text-only-tag { margin-left: 6px; }
   .audio-failed-tag {
     display: inline-block; margin-left: 6px; font-size: 10px; font-weight: 600; color: #f0a8a8;
     background: #2e1a1a; border: 1px solid #4a2626; border-radius: 4px; padding: 1px 5px; vertical-align: middle;
@@ -95,13 +90,15 @@ const selected = new Set();
 let currentMeetingId = null;
 
 fetch('/api/personas').then(r => r.json()).then(({ personas }) => {
+  // Meeting room turns are paced by real audio playback finishing — a
+  // text-only persona (no voice clone) has nothing to pace against, so it
+  // doesn't belong in this room. Leave them selectable in /brain and /talk.
   personasById = Object.fromEntries(personas.map(p => [p.id, p]));
   participantsEl.innerHTML = '';
-  personas.forEach(p => {
+  personas.filter(p => p.voiceAvailable).forEach(p => {
     const el = document.createElement('label');
     el.className = 'persona-check';
-    const tag = p.voiceAvailable ? '' : '<span class="text-only-tag">TEXT ONLY</span>';
-    el.innerHTML = `<input type="checkbox" value="${p.id}" style="display:none" /> ${p.displayName}${tag}`;
+    el.innerHTML = `<input type="checkbox" value="${p.id}" style="display:none" /> ${p.displayName}`;
     el.addEventListener('click', (e) => {
       e.preventDefault();
       if (selected.has(p.id)) { selected.delete(p.id); el.classList.remove('checked'); }
@@ -116,12 +113,6 @@ function addTurn(speakerName, text, isHuman = false, personaId = null) {
   el.className = `msg${isHuman ? ' human' : ''}`;
   el.innerHTML = `<div class="speaker"></div><div class="text"></div>`;
   el.querySelector('.speaker').textContent = speakerName;
-  if (personaId && !personasById[personaId]?.voiceAvailable) {
-    const tag = document.createElement('span');
-    tag.className = 'text-only-tag';
-    tag.textContent = 'TEXT ONLY';
-    el.querySelector('.speaker').appendChild(tag);
-  }
   el.querySelector('.text').textContent = text;
   messagesEl.appendChild(el);
   messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -187,28 +178,12 @@ function unlockAudioForMobile() {
 }
 
 async function speakTurn(el, personaId, text) {
-  console.log(`[meeting] speakTurn start — persona=${personaId} voiceAvailable=${personasById[personaId]?.voiceAvailable} textLen=${text.length}`);
+  console.log(`[meeting] speakTurn start — persona=${personaId} textLen=${text.length}`);
   let stopped = false;
   stopCurrentTurn = () => { stopped = true; };
 
   await new Promise(r => setTimeout(r, 250 + Math.random() * 400));
   if (stopped) { stopCurrentTurn = null; return; }
-
-  // Text-only personas (no voice clone) have no audio to pace against —
-  // without a stand-in delay their turn would flash by instantly next to
-  // everyone else's paced, audio-length turns. A reading-time-based pause
-  // keeps the rhythm consistent instead of making their lines look skipped.
-  if (!personasById[personaId]?.voiceAvailable) {
-    el.classList.add('speaking');
-    const readingPause = Math.min(6000, Math.max(1200, text.length * 35));
-    await new Promise((resolve) => {
-      const timeout = setTimeout(resolve, readingPause);
-      stopCurrentTurn = () => { clearTimeout(timeout); resolve(); };
-    });
-    el.classList.remove('speaking');
-    stopCurrentTurn = null;
-    return;
-  }
 
   el.classList.add('speaking');
   try {
